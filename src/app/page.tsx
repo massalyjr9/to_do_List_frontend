@@ -4,37 +4,55 @@ import { useEffect, useState } from 'react';
 import { Task, TaskStatus } from '@/types/task';
 import { fetchTasks, createTask, updateTask, deleteTask } from '@/lib/api';
 
+// Liste des statuts possibles utilisée pour l'affichage et la sélection
 const statuses: TaskStatus[] = ['to do', 'in progress', 'done'];
 
 export default function HomePage() {
+  // Liste des tâches récupérées depuis l'API
   const [tasks, setTasks] = useState<Task[]>([]);
+
+  // État pour stocker les données du formulaire de création
   const [newTask, setNewTask] = useState<Partial<Task>>({ title: '', status: 'to do' });
 
+  // Charge les tâches depuis le backend
   const loadTasks = async () => {
     const data = await fetchTasks();
     setTasks(data);
   };
 
+  // Charge les tâches au montage du composant
   useEffect(() => {
     loadTasks().catch(console.error);
   }, []);
 
+  // Gestion de la création d'une nouvelle tâche
   const handleCreate = async () => {
-    if (!newTask.title) return;
+    if (!newTask.title) return; // Empêche la création sans titre
+
     const created = await createTask(newTask);
-    setTasks(prev => [...prev, created]);
+    setTasks(prev => [...prev, created]); // Ajoute la tâche créée à l'affichage
+
+    // Réinitialise le formulaire
     setNewTask({ title: '', status: 'to do' });
   };
 
+  // Mise à jour du statut d'une tâche existante
   const handleStatusChange = async (task: Task, status: TaskStatus) => {
     if (!task._id) return;
+
     const updated = await updateTask(task._id, { status });
+
+    // Remplace la version modifiée dans la liste locale
     setTasks(prev => prev.map(t => (t._id === updated._id ? updated : t)));
   };
 
+  // Suppression d'une tâche
   const handleDelete = async (id?: string) => {
     if (!id) return;
+
     await deleteTask(id);
+
+    // Met à jour l'affichage en retirant la tâche supprimée
     setTasks(prev => prev.filter(t => t._id !== id));
   };
 
@@ -42,7 +60,7 @@ export default function HomePage() {
     <main className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">Todo List</h1>
 
-      {/* Formulaire de création */}
+      {/* Formulaire de création d'une nouvelle tâche */}
       <div className="mb-6 flex gap-2 flex-wrap">
         <input
           className="border p-2"
@@ -54,13 +72,15 @@ export default function HomePage() {
           className="border p-2"
           placeholder="Description"
           value={newTask.description || ''}
-          onChange={e => setNewTask({ ...newTask, description: e.target.value })} />
+          onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+        />
         <input
           className="border p-2"
           placeholder="Responsable"
           value={newTask.responsible || ''}
           onChange={e => setNewTask({ ...newTask, responsible: e.target.value })}
         />
+
         <select
           className="border p-2"
           value={newTask.status || 'to do'}
@@ -72,6 +92,7 @@ export default function HomePage() {
             </option>
           ))}
         </select>
+
         <button
           className="bg-blue-600 text-white px-4 py-2 rounded"
           onClick={handleCreate}
@@ -86,12 +107,18 @@ export default function HomePage() {
           <div key={task._id} className="border rounded p-4 flex justify-between items-center">
             <div>
               <h2 className="font-semibold">{task.title}</h2>
-              {task.description && <p className="text-sm text-gray-600">{task.description}</p>}
+
+              {task.description && (
+                <p className="text-sm text-gray-600">{task.description}</p>
+              )}
+
               <p className="text-xs text-gray-500">
                 Responsable : {task.responsible || '—'}
               </p>
             </div>
+
             <div className="flex items-center gap-2">
+              {/* Modification du statut */}
               <select
                 className="border p-1 text-sm"
                 value={task.status}
@@ -103,6 +130,8 @@ export default function HomePage() {
                   </option>
                 ))}
               </select>
+
+              {/* Suppression de la tâche */}
               <button
                 className="text-red-600 text-sm"
                 onClick={() => handleDelete(task._id)}
