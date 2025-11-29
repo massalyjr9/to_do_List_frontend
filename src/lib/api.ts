@@ -1,6 +1,6 @@
 import { Task } from '@/types/task';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 export async function fetchTasks(): Promise<Task[]> {
   const res = await fetch(`${BASE_URL}/tasks`);

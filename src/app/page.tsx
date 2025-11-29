@@ -52,6 +52,11 @@ export default function HomePage() {
         />
         <input
           className="border p-2"
+          placeholder="Description"
+          value={newTask.description || ''}
+          onChange={e => setNewTask({ ...newTask, description: e.target.value })} />
+        <input
+          className="border p-2"
           placeholder="Responsable"
           value={newTask.responsible || ''}
           onChange={e => setNewTask({ ...newTask, responsible: e.target.value })}
