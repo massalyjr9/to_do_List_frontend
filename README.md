@@ -103,3 +103,14 @@ Authentification utilisateur
 Pagination ou infinite scroll  
 Mode sombre  
 Tests front automatisés  
+
+Auteur  
+Idrissa Massaly  
+Développeur Fullstack — Next.js, React, TypeScript, NestJs  
+
+Déploiement sur Vercel
+L’option la plus simple pour déployer ce projet est d’utiliser Vercel.  
+```bash 
+Lien : https://vercel.com
+Documentation : https://nextjs.org/docs/app/building-your-application/deploying
+```
