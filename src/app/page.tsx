@@ -14,6 +14,18 @@ export default function HomePage() {
   // Date du jour au format YYYY-MM-DD pour bloquer les dates passées
   const today = new Date().toISOString().split('T')[0];
 
+  // Fonction utilitaire pour calculer la durée en jours (end - start)
+  const computeDurationDays = (start?: string, end?: string): number | undefined => {
+    if (!start || !end) return undefined;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return undefined;
+    if (endDate < startDate) return undefined;
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    return diffDays;
+  };
+
   const loadTasks = async () => {
     const data = await fetchTasks();
     setTasks(data);
@@ -26,11 +38,16 @@ export default function HomePage() {
   const handleSave = async () => {
     if (!newTask.title) return;
 
+    // recalculer la durée avant envoi (au cas où)
+    const duration =
+      computeDurationDays(newTask.startDate, newTask.endDate) ?? newTask.duration;
+    const payload = { ...newTask, duration };
+
     if (editingTaskId) {
-      const updated = await updateTask(editingTaskId, newTask);
+      const updated = await updateTask(editingTaskId, payload);
       setTasks(prev => prev.map(t => (t._id === updated._id ? updated : t)));
     } else {
-      const created = await createTask(newTask);
+      const created = await createTask(payload);
       setTasks(prev => [...prev, created]);
     }
 
@@ -52,16 +69,59 @@ export default function HomePage() {
 
   const startEdit = (task: Task) => {
     if (!task._id) return;
+    const autoDuration = computeDurationDays(task.startDate, task.endDate);
     setEditingTaskId(task._id);
     setNewTask({
       title: task.title,
       description: task.description,
       startDate: task.startDate,
       endDate: task.endDate,
-      duration: task.duration,
+      duration: task.duration ?? autoDuration,
       responsible: task.responsible,
       status: task.status,
     });
+  };
+
+  // Handler pour changer la date de début
+  const handleStartDateChange = (value: string) => {
+    let endDate = newTask.endDate;
+
+    // Si la date de fin existe et devient < date de début, on l'aligne sur la date de début
+    if (endDate && endDate < value) {
+      endDate = value;
+    }
+
+    const duration = computeDurationDays(value, endDate);
+
+    setNewTask(prev => ({
+      ...prev,
+      startDate: value,
+      endDate,
+      duration,
+    }));
+  };
+
+  // Handler pour changer la date de fin
+  const handleEndDateChange = (value: string) => {
+    const startDate = newTask.startDate;
+
+    // Si pas de date de début, on fixe start = today
+    const effectiveStart = startDate || today;
+
+    // Si la fin est avant le début, on force fin = début
+    let endDate = value;
+    if (endDate < effectiveStart) {
+      endDate = effectiveStart;
+    }
+
+    const duration = computeDurationDays(effectiveStart, endDate);
+
+    setNewTask(prev => ({
+      ...prev,
+      startDate: startDate || effectiveStart,
+      endDate,
+      duration,
+    }));
   };
 
   return (
@@ -75,6 +135,7 @@ export default function HomePage() {
           value={newTask.title || ''}
           onChange={e => setNewTask({ ...newTask, title: e.target.value })}
         />
+
         <input
           className="border p-2"
           placeholder="Description"
@@ -89,7 +150,7 @@ export default function HomePage() {
           placeholder="Date de début"
           value={newTask.startDate || ''}
           min={today}
-          onChange={e => setNewTask({ ...newTask, startDate: e.target.value })}
+          onChange={e => handleStartDateChange(e.target.value)}
         />
 
         {/* Date de fin : calendrier + ne peut pas être avant la date de début (ou aujourd'hui) */}
@@ -99,21 +160,18 @@ export default function HomePage() {
           placeholder="Date de fin"
           value={newTask.endDate || ''}
           min={newTask.startDate || today}
-          onChange={e => setNewTask({ ...newTask, endDate: e.target.value })}
+          onChange={e => handleEndDateChange(e.target.value)}
         />
 
+        {/* Durée calculée automatiquement en jours, affichée en lecture seule */}
         <input
           className="border p-2"
           type="number"
-          placeholder="Durée (heures)"
+          placeholder="Durée (jours)"
           value={newTask.duration ?? ''}
-          onChange={e =>
-            setNewTask({
-              ...newTask,
-              duration: e.target.value ? Number(e.target.value) : undefined,
-            })
-          }
+          readOnly
         />
+
         <input
           className="border p-2"
           placeholder="Responsable"
@@ -164,6 +222,11 @@ export default function HomePage() {
               <p className="text-xs text-gray-500">
                 Responsable : {task.responsible || '—'}
               </p>
+              {task.startDate && task.endDate && (
+                <p className="text-xs text-gray-500">
+                  Du {task.startDate} au {task.endDate}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
