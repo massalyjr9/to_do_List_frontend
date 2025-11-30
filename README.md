@@ -97,9 +97,9 @@ Routes consommées auprès du backend NestJS :
 
 ```
 Améliorations possibles: 
-Moteur de recherche / filtres \n
-Statistiques globales
-Authentification utilisateur
-Pagination ou infinite scroll
-Mode sombre
-Tests front automatisés
+Moteur de recherche / filtres  
+Statistiques globales  
+Authentification utilisateur  
+Pagination ou infinite scroll  
+Mode sombre  
+Tests front automatisés  
