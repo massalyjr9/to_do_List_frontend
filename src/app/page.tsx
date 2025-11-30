@@ -4,63 +4,67 @@ import { useEffect, useState } from 'react';
 import { Task, TaskStatus } from '@/types/task';
 import { fetchTasks, createTask, updateTask, deleteTask } from '@/lib/api';
 
-// Liste des statuts possibles utilisée pour l'affichage et la sélection
 const statuses: TaskStatus[] = ['to do', 'in progress', 'done'];
 
 export default function HomePage() {
-  // Liste des tâches récupérées depuis l'API
   const [tasks, setTasks] = useState<Task[]>([]);
-
-  // État pour stocker les données du formulaire de création
   const [newTask, setNewTask] = useState<Partial<Task>>({ title: '', status: 'to do' });
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  // Charge les tâches depuis le backend
   const loadTasks = async () => {
     const data = await fetchTasks();
     setTasks(data);
   };
 
-  // Charge les tâches au montage du composant
   useEffect(() => {
     loadTasks().catch(console.error);
   }, []);
 
-  // Gestion de la création d'une nouvelle tâche
-  const handleCreate = async () => {
-    if (!newTask.title) return; // Empêche la création sans titre
+  const handleSave = async () => {
+    if (!newTask.title) return;
 
-    const created = await createTask(newTask);
-    setTasks(prev => [...prev, created]); // Ajoute la tâche créée à l'affichage
+    if (editingTaskId) {
+      const updated = await updateTask(editingTaskId, newTask);
+      setTasks(prev => prev.map(t => (t._id === updated._id ? updated : t)));
+    } else {
+      const created = await createTask(newTask);
+      setTasks(prev => [...prev, created]);
+    }
 
-    // Réinitialise le formulaire
     setNewTask({ title: '', status: 'to do' });
+    setEditingTaskId(null);
   };
 
-  // Mise à jour du statut d'une tâche existante
   const handleStatusChange = async (task: Task, status: TaskStatus) => {
     if (!task._id) return;
-
     const updated = await updateTask(task._id, { status });
-
-    // Remplace la version modifiée dans la liste locale
     setTasks(prev => prev.map(t => (t._id === updated._id ? updated : t)));
   };
 
-  // Suppression d'une tâche
   const handleDelete = async (id?: string) => {
     if (!id) return;
-
     await deleteTask(id);
-
-    // Met à jour l'affichage en retirant la tâche supprimée
     setTasks(prev => prev.filter(t => t._id !== id));
+  };
+
+  const startEdit = (task: Task) => {
+    if (!task._id) return;
+    setEditingTaskId(task._id);
+    setNewTask({
+      title: task.title,
+      description: task.description,
+      startDate: task.startDate,
+      endDate: task.endDate,
+      duration: task.duration,
+      responsible: task.responsible,
+      status: task.status,
+    });
   };
 
   return (
     <main className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">Todo List</h1>
 
-      {/* Formulaire de création d'une nouvelle tâche */}
       <div className="mb-6 flex gap-2 flex-wrap">
         <input
           className="border p-2"
@@ -73,6 +77,29 @@ export default function HomePage() {
           placeholder="Description"
           value={newTask.description || ''}
           onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+        />
+        <input
+          className="border p-2"
+          type="date"
+          placeholder="Date de début"
+          value={newTask.startDate || ''}
+          onChange={e => setNewTask({ ...newTask, startDate: e.target.value })}
+        />
+        <input
+          className="border p-2"
+          type="date"
+          placeholder="Date de fin"
+          value={newTask.endDate || ''}
+          onChange={e => setNewTask({ ...newTask, endDate: e.target.value })}
+        />
+        <input
+          className="border p-2"
+          type="number"
+          placeholder="Durée (heures)"
+          value={newTask.duration ?? ''}
+          onChange={e =>
+            setNewTask({ ...newTask, duration: e.target.value ? Number(e.target.value) : undefined })
+          }
         />
         <input
           className="border p-2"
@@ -95,30 +122,38 @@ export default function HomePage() {
 
         <button
           className="bg-blue-600 text-white px-4 py-2 rounded"
-          onClick={handleCreate}
+          onClick={handleSave}
         >
-          Ajouter
+          {editingTaskId ? 'Mettre à jour' : 'Ajouter'}
         </button>
+
+        {editingTaskId && (
+          <button
+            className="px-4 py-2 rounded border"
+            onClick={() => {
+              setEditingTaskId(null);
+              setNewTask({ title: '', status: 'to do' });
+            }}
+          >
+            Annuler
+          </button>
+        )}
       </div>
 
-      {/* Liste des tâches */}
       <div className="grid gap-4">
         {tasks.map(task => (
           <div key={task._id} className="border rounded p-4 flex justify-between items-center">
             <div>
               <h2 className="font-semibold">{task.title}</h2>
-
               {task.description && (
                 <p className="text-sm text-gray-600">{task.description}</p>
               )}
-
               <p className="text-xs text-gray-500">
                 Responsable : {task.responsible || '—'}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Modification du statut */}
               <select
                 className="border p-1 text-sm"
                 value={task.status}
@@ -131,7 +166,13 @@ export default function HomePage() {
                 ))}
               </select>
 
-              {/* Suppression de la tâche */}
+              <button
+                className="text-blue-600 text-sm"
+                onClick={() => startEdit(task)}
+              >
+                Modifier
+              </button>
+
               <button
                 className="text-red-600 text-sm"
                 onClick={() => handleDelete(task._id)}
