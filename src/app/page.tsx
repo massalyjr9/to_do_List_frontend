@@ -11,6 +11,9 @@ export default function HomePage() {
   const [newTask, setNewTask] = useState<Partial<Task>>({ title: '', status: 'to do' });
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
+  // Date du jour au format YYYY-MM-DD pour bloquer les dates passées
+  const today = new Date().toISOString().split('T')[0];
+
   const loadTasks = async () => {
     const data = await fetchTasks();
     setTasks(data);
@@ -78,27 +81,37 @@ export default function HomePage() {
           value={newTask.description || ''}
           onChange={e => setNewTask({ ...newTask, description: e.target.value })}
         />
+
+        {/* Date de début : calendrier + dates passées bloquées */}
         <input
           className="border p-2"
           type="date"
           placeholder="Date de début"
           value={newTask.startDate || ''}
+          min={today}
           onChange={e => setNewTask({ ...newTask, startDate: e.target.value })}
         />
+
+        {/* Date de fin : calendrier + ne peut pas être avant la date de début (ou aujourd'hui) */}
         <input
           className="border p-2"
           type="date"
           placeholder="Date de fin"
           value={newTask.endDate || ''}
+          min={newTask.startDate || today}
           onChange={e => setNewTask({ ...newTask, endDate: e.target.value })}
         />
+
         <input
           className="border p-2"
           type="number"
           placeholder="Durée (heures)"
           value={newTask.duration ?? ''}
           onChange={e =>
-            setNewTask({ ...newTask, duration: e.target.value ? Number(e.target.value) : undefined })
+            setNewTask({
+              ...newTask,
+              duration: e.target.value ? Number(e.target.value) : undefined,
+            })
           }
         />
         <input
