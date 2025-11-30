@@ -102,7 +102,7 @@ Statistiques globales
 Authentification utilisateur  
 Pagination ou infinite scroll  
 Mode sombre  
-Tests front automatisés  
+Tests front automatisés
 
 Auteur  
 Idrissa Massaly  
